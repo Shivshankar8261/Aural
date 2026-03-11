@@ -1,0 +1,7 @@
+{
+  "name": "Aural Language Learning",
+  "description": "A language learning app focused on pronunciation and aural skills.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
