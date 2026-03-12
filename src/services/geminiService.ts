@@ -14,7 +14,7 @@ export const geminiService = {
       throw new Error("Gemini API key is missing. Please check your environment variables.");
     }
     const ai = new GoogleGenAI({ apiKey });
-    
+
     let promptText = `Say this text clearly and naturally at a normal, conversational speed: ${text}`;
     if (moduleId === 'shlokas') {
       promptText = `Recite this text clearly and melodiously with a traditional ancient Indian accent, like a sage or priest, at a normal pace: ${text}`;
@@ -54,9 +54,9 @@ export const geminiService = {
     try {
       // Clean base64 string if it has data URI prefix
       const base64Data = audioBase64.split(',')[1] || audioBase64;
-      
+
       const cleanMimeType = mimeType.split(';')[0] || 'audio/webm';
-      
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: {
@@ -110,6 +110,58 @@ Return a JSON object with the following structure exactly:
     } catch (e) {
       console.error('Gemini Pronunciation Evaluation error:', e);
       return null;
+    }
+  },
+
+  async generateKidFriendlyExplanation(targetSentence: string, translation: string): Promise<{ fact: string; icon: string }> {
+    const apiKey = process.env.GEMINI_API_KEY || '';
+    if (!apiKey) return { fact: "Learning is fun!", icon: "🌟" };
+
+    const cacheKey = `explanation_${targetSentence}`;
+    if (speechCache[cacheKey]) {
+      return JSON.parse(speechCache[cacheKey]);
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [{
+            text: `You are a friendly cartoon cat teacher explaining a sentence to a 6-year-old child.
+The sentence is: "${targetSentence}" (which means "${translation}").
+Provide one very short, fun, kid-friendly fact or explanation about this phrase or a word in it.
+Also provide a single matching emoji as an icon.
+Return exactly this JSON:
+{
+  "fact": "<the fun fact>",
+  "icon": "<single emoji>"
+}`
+          }]
+        },
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              fact: { type: Type.STRING },
+              icon: { type: Type.STRING }
+            },
+            required: ["fact", "icon"]
+          }
+        }
+      });
+
+      let text = response.text;
+      if (text) {
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        speechCache[cacheKey] = text;
+        return JSON.parse(text);
+      }
+      return { fact: "Learning is fun!", icon: "🌟" };
+    } catch (e) {
+      console.error('Gemini Explanation error:', e);
+      return { fact: "Keep up the great work learning new words!", icon: "🐱" };
     }
   }
 };
