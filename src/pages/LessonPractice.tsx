@@ -290,11 +290,14 @@ export default function LessonPractice() {
         const mimeType = mediaRecorder.current?.mimeType || 'audio/webm';
         setAudioMimeType(mimeType);
         const audioBlob = new Blob(audioChunks.current, { type: mimeType });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          setRecordedAudio(reader.result as string);
-        };
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudio(audioUrl);
+
+        // Clean up previous URL to avoid memory leaks if recordedAudio already existed
+        if (recordedAudio && recordedAudio.startsWith('blob:')) {
+          URL.revokeObjectURL(recordedAudio);
+        }
+
 
         // Stop tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
@@ -329,7 +332,10 @@ export default function LessonPractice() {
         playbackAudio.current.pause();
       }
       playbackAudio.current = new Audio(recordedAudio);
-      playbackAudio.current.play();
+      playbackAudio.current.play().catch(e => {
+        console.error("Audio playback failed:", e);
+        alert("Audio playback failed. Your browser might not support this audio format.");
+      });
     }
   };
 
