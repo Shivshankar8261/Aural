@@ -62,9 +62,20 @@ export default function ModuleLessonList() {
           <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
             <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="material-symbols-outlined text-[16px]">headset</span>
-            <span>{completedCount * 12} minutes practiced</span>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined text-[16px]">headset</span>
+              <span>{completedCount * 12} minutes practiced</span>
+            </div>
+            {completedCount < allLessons.length && (
+              <Link 
+                to={`/lesson/${allLessons.find(l => !completedLessons.includes(l.id))?.id || allLessons[0].id}`}
+                className="bg-primary text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-primary/90 transition-colors flex items-center gap-1"
+              >
+                <span>Continue</span>
+                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -75,10 +86,25 @@ export default function ModuleLessonList() {
           <span onClick={() => setShowInfo(true)} className="text-xs font-medium text-primary cursor-pointer">View Syllabus</span>
         </div>
         
-        <div className="space-y-6">
-          {currentModule.chapters.map((chapter, chapterIndex) => (
+        <div className="space-y-8">
+          {currentModule.chapters.map((chapter, chapterIndex) => {
+            const chapterCompletedCount = chapter.lessons.filter(l => completedLessons.includes(l.id)).length;
+            const chapterProgressPercent = Math.round((chapterCompletedCount / chapter.lessons.length) * 100);
+
+            return (
             <div key={chapter.id}>
-              <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-3">{chapter.title}</h4>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">{chapter.title}</h4>
+                  {chapterCompletedCount === chapter.lessons.length && (
+                    <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                  )}
+                </div>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{chapterCompletedCount}/{chapter.lessons.length}</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mb-4 overflow-hidden">
+                <div className="bg-primary h-1.5 rounded-full transition-all duration-500" style={{ width: `${chapterProgressPercent}%` }}></div>
+              </div>
               <div className="space-y-3">
                 {chapter.lessons.map((lesson, lessonIndex) => {
                   const globalLessonIndex = allLessons.findIndex(l => l.id === lesson.id);
@@ -137,7 +163,8 @@ export default function ModuleLessonList() {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {currentModule.id !== 'shlokas' && (

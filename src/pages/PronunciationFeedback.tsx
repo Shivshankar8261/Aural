@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { geminiService } from '../services/geminiService';
@@ -11,6 +11,18 @@ export default function PronunciationFeedback() {
   const { completeLesson } = useUserStore();
   const [isPlayingOriginal, setIsPlayingOriginal] = useState(false);
   const audioContext = useRef<AudioContext | null>(null);
+
+  const currentModule = modules.find(m => m.chapters.some(c => c.lessons.some(l => l.id === lesson?.id)));
+
+  // Prefetch audio
+  useEffect(() => {
+    if (lesson && currentModule && currentModule.id === 'shlokas') {
+      geminiService.generateSpeech(lesson.targetSentence, currentModule.id).catch(console.error);
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices(); // Pre-load native voices
+    }
+  }, [lesson, currentModule]);
 
   if (!result || !lesson) {
     return (
@@ -26,12 +38,14 @@ export default function PronunciationFeedback() {
   }
 
   const handleContinue = () => {
+    // Calculate XP based on score (max 50 XP for a perfect score)
+    const xpEarned = Math.max(5, Math.round(result.score / 2));
+    
     // Update progress
-    completeLesson(lesson.id, result.score, 10);
+    completeLesson(lesson.id, result.score, xpEarned);
     
     // Find next lesson
     let nextLessonId = null;
-    const currentModule = modules.find(m => m.chapters.some(c => c.lessons.some(l => l.id === lesson.id)));
     if (currentModule) {
       const allLessons = currentModule.chapters.flatMap(c => c.lessons);
       const currentIndex = allLessons.findIndex(l => l.id === lesson.id);
@@ -40,7 +54,7 @@ export default function PronunciationFeedback() {
       }
     }
     
-    navigate('/lesson-complete', { state: { result, lesson, nextLessonId } });
+    navigate('/lesson-complete', { state: { result, lesson, nextLessonId, xpEarned } });
   };
 
   const handleRetry = () => {
@@ -54,12 +68,9 @@ export default function PronunciationFeedback() {
     }
   };
 
-  const playOriginal = async () => {
-    if (isPlayingOriginal) return;
-    setIsPlayingOriginal(true);
-    
+  const playWithGemini = async () => {
     try {
-      const audioBase64 = await geminiService.generateSpeech(lesson.targetSentence);
+      const audioBase64 = await geminiService.generateSpeech(lesson.targetSentence, currentModule?.id);
       if (audioBase64) {
         if (!audioContext.current) {
           audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -91,13 +102,62 @@ export default function PronunciationFeedback() {
         source.connect(ctx.destination);
         source.onended = () => setIsPlayingOriginal(false);
         source.start();
-      } else {
-        alert("Failed to generate speech. Please try again.");
-        setIsPlayingOriginal(false);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.message || "Failed to generate speech. Please try again.");
       setIsPlayingOriginal(false);
+    }
+  };
+
+  const playOriginal = async () => {
+    if (isPlayingOriginal) return;
+    setIsPlayingOriginal(true);
+    
+    const langMap: Record<string, string[]> = {
+      'eng-hindi': ['hi-IN', 'hi'],
+      'eng-marathi': ['mr-IN', 'mr', 'hi-IN', 'hi'], // Fallback to Hindi for Marathi
+      'eng-kannada': ['kn-IN', 'kn'],
+      'eng-telugu': ['te-IN', 'te'],
+      'eng-tamil': ['ta-IN', 'ta']
+    };
+
+    const langCodes = currentModule ? langMap[currentModule.id] : null;
+
+    if (langCodes && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      
+      const voices = window.speechSynthesis.getVoices();
+      let selectedVoice = null;
+      let selectedLangCode = langCodes[0];
+
+      for (const code of langCodes) {
+        selectedVoice = voices.find(v => 
+          v.lang.replace('_', '-').toLowerCase() === code.toLowerCase() || 
+          v.lang.toLowerCase().startsWith(code.split('-')[0].toLowerCase())
+        );
+        if (selectedVoice) {
+          selectedLangCode = selectedVoice.lang;
+          break;
+        }
+      }
+
+      const utterance = new SpeechSynthesisUtterance(lesson.targetSentence);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.lang = selectedLangCode;
+      utterance.rate = 0.85;
+      
+      utterance.onend = () => setIsPlayingOriginal(false);
+      utterance.onerror = (e) => {
+        console.error("Native TTS error:", e);
+        playWithGemini();
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    } else {
+      playWithGemini();
     }
   };
 

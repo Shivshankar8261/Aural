@@ -14,7 +14,8 @@ export default function BottomNav() {
 
   const navItems = [
     { name: 'Home', path: '/home', icon: 'home' },
-    { name: 'Lessons', path: `/module/${currentLang === 'shlokas' ? 'shlokas' : currentLang}`, icon: 'menu_book' },
+    { name: 'Lessons', path: currentLang === 'shlokas' ? '/shlokas' : `/module/${currentLang}`, icon: 'menu_book' },
+    { name: 'Rank', path: '/leaderboard', icon: 'emoji_events' },
     { name: 'Progress', path: '/progress', icon: 'analytics' },
     { name: 'Profile', path: '/profile', icon: 'person' },
   ];

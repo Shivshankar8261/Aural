@@ -5,7 +5,7 @@ import BottomNav from '../components/BottomNav';
 import { modules } from '../data/lessons';
 
 export default function HomeDashboard() {
-  const { name, streak, confidenceScore, completedLessons, targetLanguage } = useUserStore();
+  const { name, streak, confidenceScore, completedLessons, targetLanguage, xp } = useUserStore();
   const [showNotifications, setShowNotifications] = useState(false);
   
   const currentModule = modules.find(m => m.id === targetLanguage) || modules[0];
@@ -14,6 +14,7 @@ export default function HomeDashboard() {
   const nextLessonIndex = moduleCompletedLessons.length % allLessons.length;
   const currentLesson = allLessons[nextLessonIndex];
   const previousLesson = nextLessonIndex > 0 ? allLessons[nextLessonIndex - 1] : null;
+  const progressPercentage = Math.round((moduleCompletedLessons.length / allLessons.length) * 100) || 0;
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark w-full">
@@ -33,28 +34,48 @@ export default function HomeDashboard() {
         </button>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 px-6 py-3">
-        <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Confidence</p>
-            <p className="text-lg font-black text-primary">{confidenceScore || 0}%</p>
+      <div className="grid grid-cols-3 gap-3 px-6 py-3">
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
+          <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined text-primary text-[16px]">analytics</span>
           </div>
-          <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary text-[14px]">analytics</span>
-          </div>
+          <p className="text-xl font-black text-primary leading-none mb-1">{confidenceScore || 0}%</p>
+          <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Confidence</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Streak</p>
-            <p className="text-lg font-black text-slate-900 dark:text-slate-100">{streak || 0} <span className="text-xs font-medium text-slate-500">days</span></p>
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
+          <div className="size-8 rounded-full bg-orange-500/10 flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined text-orange-500 text-[16px]">local_fire_department</span>
           </div>
-          <div className="size-7 rounded-full bg-orange-500/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-orange-500 text-[14px]">local_fire_department</span>
+          <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{streak || 0}</p>
+          <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Streak</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center text-center">
+          <div className="size-8 rounded-full bg-yellow-500/10 flex items-center justify-center mb-2">
+            <span className="material-symbols-outlined text-yellow-500 text-[16px]">stars</span>
           </div>
+          <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{xp || 0}</p>
+          <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Points</p>
         </div>
       </div>
 
       <div className="px-6 mb-6 mt-2">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Current Module</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{currentModule.title}</h3>
+            </div>
+            <span className="text-sm font-black text-primary">{progressPercentage}%</span>
+          </div>
+          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-1.5 overflow-hidden">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+          <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 text-right">{moduleCompletedLessons.length} of {allLessons.length} lessons completed</p>
+        </div>
+
         <Link to={`/lesson/${currentLesson.id}`} className="w-full bg-primary hover:bg-primary/90 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
           <span className="material-symbols-outlined">play_circle</span>
           <span>Start Practice</span>

@@ -14,12 +14,13 @@ import ProgressAnalytics from './pages/ProgressAnalytics';
 import LessonComplete from './pages/LessonComplete';
 import Profile from './pages/Profile';
 import FinalDashboard from './pages/FinalDashboard';
+import Leaderboard from './pages/Leaderboard';
 
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
-        <div className="w-full max-w-md bg-white dark:bg-background-dark shadow-xl relative overflow-x-hidden min-h-screen flex flex-col">
+      <div className="bg-slate-50 font-display text-slate-900 min-h-screen flex justify-center">
+        <div className="w-full max-w-md bg-white shadow-xl relative overflow-x-hidden min-h-screen flex flex-col">
           <Routes>
             <Route path="/" element={<Welcome />} />
             <Route path="/signup" element={<SignUp />} />
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/feedback" element={<PronunciationFeedback />} />
             <Route path="/shlokas" element={<ShlokasLearning />} />
             <Route path="/progress" element={<ProgressAnalytics />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/lesson-complete" element={<LessonComplete />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/dashboard" element={<FinalDashboard />} />

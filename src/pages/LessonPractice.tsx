@@ -51,12 +51,19 @@ export default function LessonPractice() {
     };
   }, []);
 
-  const handlePlayAudio = async () => {
-    if (isPlaying) return;
-    setIsPlaying(true);
-    
+  // Prefetch audio
+  useEffect(() => {
+    if (currentLesson && currentModule && currentModule.id === 'shlokas') {
+      geminiService.generateSpeech(currentLesson.targetSentence, currentModule.id).catch(console.error);
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices(); // Pre-load native voices
+    }
+  }, [currentLesson, currentModule]);
+
+  const playWithGemini = async () => {
     try {
-      const audioBase64 = await geminiService.generateSpeech(currentLesson.targetSentence);
+      const audioBase64 = await geminiService.generateSpeech(currentLesson.targetSentence, currentModule.id);
       if (audioBase64) {
         if (!audioContext.current) {
           audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -91,13 +98,67 @@ export default function LessonPractice() {
           setHasListened(true);
         };
         source.start();
-      } else {
-        alert("Failed to generate speech. Please try again.");
-        setIsPlaying(false);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.message || "Failed to generate speech. Please try again.");
       setIsPlaying(false);
+    }
+  };
+
+  const handlePlayAudio = async () => {
+    if (isPlaying) return;
+    setIsPlaying(true);
+    
+    const langMap: Record<string, string[]> = {
+      'eng-hindi': ['hi-IN', 'hi'],
+      'eng-marathi': ['mr-IN', 'mr', 'hi-IN', 'hi'], // Fallback to Hindi for Marathi (both use Devanagari script)
+      'eng-kannada': ['kn-IN', 'kn'],
+      'eng-telugu': ['te-IN', 'te'],
+      'eng-tamil': ['ta-IN', 'ta']
+    };
+
+    const langCodes = currentModule ? langMap[currentModule.id] : null;
+
+    if (langCodes && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Stop any ongoing speech
+      
+      const voices = window.speechSynthesis.getVoices();
+      let selectedVoice = null;
+      let selectedLangCode = langCodes[0];
+
+      // Try to find a matching voice, including fallbacks
+      for (const code of langCodes) {
+        selectedVoice = voices.find(v => 
+          v.lang.replace('_', '-').toLowerCase() === code.toLowerCase() || 
+          v.lang.toLowerCase().startsWith(code.split('-')[0].toLowerCase())
+        );
+        if (selectedVoice) {
+          selectedLangCode = selectedVoice.lang;
+          break;
+        }
+      }
+
+      const utterance = new SpeechSynthesisUtterance(currentLesson.targetSentence);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.lang = selectedLangCode;
+      utterance.rate = 0.85; // Slightly slower for learning
+      
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setHasListened(true);
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("Native TTS error:", e);
+        playWithGemini();
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    } else {
+      playWithGemini();
     }
   };
 

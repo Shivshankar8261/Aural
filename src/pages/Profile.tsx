@@ -5,7 +5,7 @@ import BottomNav from '../components/BottomNav';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { name, email, targetLanguage, skillLevel, setName, setEmail, logout } = useUserStore();
+  const { name, email, targetLanguage, skillLevel, xp, setName, setEmail, logout } = useUserStore();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -74,7 +74,11 @@ export default function Profile() {
           ) : (
             <>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Alex'}</h2>
-              <p className="text-slate-500 dark:text-slate-400">{email || 'alex@example.com'}</p>
+              <p className="text-slate-500 dark:text-slate-400 mb-2">{email || 'alex@example.com'}</p>
+              <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1 rounded-full border border-yellow-200 dark:border-yellow-800">
+                <span className="material-symbols-outlined text-yellow-500 text-sm">stars</span>
+                <span className="font-bold text-yellow-600 dark:text-yellow-500 text-sm">{xp || 0} XP</span>
+              </div>
             </>
           )}
         </div>

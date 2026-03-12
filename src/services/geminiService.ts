@@ -1,14 +1,29 @@
 import { GoogleGenAI, Modality, Type } from '@google/genai';
 
+const speechCache: Record<string, string> = {};
+
 export const geminiService = {
-  async generateSpeech(text: string): Promise<string | null> {
+  async generateSpeech(text: string, moduleId?: string): Promise<string> {
+    const cacheKey = `${moduleId || 'default'}_${text}`;
+    if (speechCache[cacheKey]) {
+      return speechCache[cacheKey];
+    }
+
     const apiKey = process.env.GEMINI_API_KEY || '';
-    if (!apiKey) return null;
+    if (!apiKey) {
+      throw new Error("Gemini API key is missing. Please check your environment variables.");
+    }
     const ai = new GoogleGenAI({ apiKey });
+    
+    let promptText = `Say this text clearly and naturally at a normal, conversational speed: ${text}`;
+    if (moduleId === 'shlokas') {
+      promptText = `Recite this text clearly and melodiously with a traditional ancient Indian accent, like a sage or priest, at a normal pace: ${text}`;
+    }
+
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-preview-tts',
-        contents: [{ parts: [{ text: `Recite this text clearly, slowly, and melodiously with a traditional ancient Indian accent, like a sage or priest: ${text}` }] }],
+        contents: [{ parts: [{ text: promptText }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -21,12 +36,14 @@ export const geminiService = {
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
+        speechCache[cacheKey] = base64Audio;
         return base64Audio;
       }
-      return null;
-    } catch (e) {
+      throw new Error("No audio data received from the server. Please try again.");
+    } catch (e: any) {
       console.error('Gemini TTS error:', e);
-      return null;
+      const errorMessage = e?.message || "An unexpected error occurred during speech generation. Please try again later.";
+      throw new Error(`Speech generation failed: ${errorMessage}`);
     }
   },
 

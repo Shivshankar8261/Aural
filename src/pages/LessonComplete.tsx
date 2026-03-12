@@ -4,7 +4,7 @@ import { useUserStore } from '../store/userStore';
 export default function LessonComplete() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { result, lesson, nextLessonId } = location.state || {};
+  const { result, lesson, nextLessonId, xpEarned = 10 } = location.state || {};
   const { streak, xp } = useUserStore();
 
   if (!result || !lesson) {
@@ -44,7 +44,7 @@ export default function LessonComplete() {
               <span className="material-symbols-outlined text-yellow-300">stars</span>
               <span className="text-sm font-bold text-white/80 uppercase tracking-wider">XP Earned</span>
             </div>
-            <p className="text-3xl font-bold">+10</p>
+            <p className="text-3xl font-bold">+{xpEarned}</p>
           </div>
           
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
